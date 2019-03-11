@@ -4,15 +4,24 @@
 nth_window_in_workspace.py go to workspace name, index of window in there.
 
 Arguments: workspace_name, index, [visible] [to_mode]
-If `visible` is the word "visible" it will ignore invisible ones. For i.e. stacked
+If `visible` is the word `"visible"` it will ignore invisible ones. For i.e. stacked
 windows, the non-visible one in the stack are.. not visible for this.
 (probably you dont want to use "visible"?)
+
+If index is `"cycle"` or `"reverse_cycle"` it either go to the workspace, or cycle
+through the windows if already there.
 
 `to_mode` is whether to change to another mode, if "no" it will stay in the same mode.
 Defaultly it is "default".(possibly returning to it)
 
 - requires the `xprop` utility (for `window_is_visible`)
 
+Examples in config file: (you'll have to specify `$pydir` too)
+
+mapping: `bindsym r exec "python $pydir/nth_window_in_workspace.py 4  1"`
+you'll need a lot of those for different numbers there and keys.
+
+cycle:   `bindsym Mod2+KP_1 exec "python $pydir/nth_window_in_workspace.py 1  cycle`"
 """
 
 from sys import argv
