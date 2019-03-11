@@ -16,6 +16,7 @@ Defaultly it is "default".(possibly returning to it)
 """
 
 from sys import argv
+from itertools import cycle
 from subprocess import check_output
 
 import i3ipc
@@ -43,8 +44,6 @@ def pick_from_list(lst, n, alt=None):
 
 def main(workspace_name, get_index, visibility='invisible', to_mode='default', *drek):
 
-    get_index = int(get_index)
-
     conn = i3ipc.Connection()
 
     workspace = workspace_by_name(conn, workspace_name)  # Find workspace.
@@ -53,21 +52,35 @@ def main(workspace_name, get_index, visibility='invisible', to_mode='default', *
         conn.command("workspace " + workspace_name)
 
     else:
-        windows =  workspace.leaves()  # Find windows in there.
+        windows =  workspace.leaves()  # Find windows in there, filter by visibility if needed.
         if visibility=='visible':
             windows = filter(window_is_visible, windows)
         elif visibility!='invisible':
             print("WARN: currently only support invisible and visible as selectors.")
 
-        window = pick_from_list(list(windows), get_index)  # Pick correct window from there.
-
-        if window != None:
-            print("Focussing %d" % window.window)
-            conn.command('[id="%d"] focus' % window.window)
-        else:
-            print("Did not find window(%d) going to workspace anyway."%get_index)
+        if workspace_name != workspace.name:
             conn.command("workspace " + workspace_name)
+        elif get_index not in ['cycle', 'cycle_reverse']:
+            get_index = int(get_index)  # Pick correct window from there.
+            window = pick_from_list(list(windows), get_index)
 
+            if window != None:
+                print("Focussing %d" % window.window)
+                conn.command('[id="%d"] focus' % window.window)
+            else:  # It can happen, if an empty workspace is open?
+                conn.command("workspace " + workspace_name)
+        else:  # Cycle if in the correct window.
+            cycle_windows = cycle(windows if get_index=='cycle' else reversed(windows))
+
+            for i,window in enumerate(cycle_windows):
+                if window.focused:
+                    conn.command('[id="%d"] focus' % next(cycle_windows).window)
+                    break
+                elif i > len(windows)+1:
+                    print("WTF", "not cyling in right workspace, yet %s == %s" % \
+                          (workspace.name, workspace_name))
+                    conn.command("workspace " + workspace_name)
+                    break
     if to_mode != 'no':
         conn.command("mode " + to_mode)
 
